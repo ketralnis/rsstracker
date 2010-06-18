@@ -1,6 +1,8 @@
 from calendar import timegm
 from datetime import datetime, timedelta
 from hashlib import md5
+import os, os.path
+import urllib2
 
 import feedparser
 from sqlalchemy.orm import sessionmaker
@@ -56,7 +58,8 @@ class RSSTracker(object):
                  url,
                  fname,
                  debug=False,
-                 keepfor=timedelta(days=7)):
+                 keepfor=timedelta(days=7),
+                 tmpfname = None):
        
         engine = create_engine('sqlite:///%s' % fname, echo = debug)
         Session = sessionmaker(bind=engine)
@@ -66,6 +69,7 @@ class RSSTracker(object):
         self.session = Session() 
         self.debug = debug
         self.keepfor = keepfor
+        self.tmpfname = tmpfname
 
         # clean up first, it will make querying cheaper
         self.cleanup()
@@ -75,6 +79,10 @@ class RSSTracker(object):
         self.session.query(Article).filter(Article.timestamp < expiry).delete()
 
     def entries(self, only_unread = True):
+        #if self.tmpfname and os.path.isfile(self.tmpfname):
+        #    mtime = os.path.getmtime(self.tmpfname)
+        #    print mtime
+
         e = feedparser.parse(self.url)
         for entry in e.entries:
             # upgrade to our special class that can save itself
@@ -88,6 +96,6 @@ class RSSTracker(object):
     __iter__ = entries
 
 if __name__ == '__main__':
-    for entry in RSSTracker('http://rss.reddit.com', './test.db'):
-        print entry.title, entry.link
+    for entry in RSSTracker('http://rss.reddit.com', './test.db', tmpfname = '/tmp/rsstracker'):
+        print repr(entry.title), repr(entry.link)
         entry.save()

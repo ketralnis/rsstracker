@@ -1,0 +1,1 @@
+* Try to get a 304 from the server instead of parsing the whole response every time
